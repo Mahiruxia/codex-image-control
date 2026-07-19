@@ -1,6 +1,6 @@
 {
   "name": "codex-image-control",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "private": true,
   "description": "Maintainable source and release workspace for the Image Control Codex plugin.",
   "license": "Apache-2.0",

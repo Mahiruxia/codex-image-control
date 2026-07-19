@@ -8,8 +8,7 @@
       ],
       "cwd": ".",
       "env": {
-        "IMAGE_CONTROL_ROOT": ".",
-        "IMAGE_CONTROL_PORT": "4317"
+        "IMAGE_CONTROL_ROOT": "."
       },
       "env_vars": [
         "IMAGE_CONTROL_STATE_ROOT",

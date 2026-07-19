@@ -54303,7 +54303,20 @@ const DEFAULT_STATE_ROOT = process.platform === "win32"
         : external_node_path_.join(external_node_os_namespaceObject.homedir(), ".codex-image-control");
 const STATE_ROOT = external_node_path_.resolve(process.env.IMAGE_CONTROL_STATE_ROOT ?? DEFAULT_STATE_ROOT);
 const PROJECTS_ROOT = external_node_path_.resolve(process.env.IMAGE_CONTROL_PROJECTS_ROOT ?? external_node_path_.join(STATE_ROOT, "data", "projects"));
-const HTTP_PORT = Number(process.env.IMAGE_CONTROL_PORT ?? 4317);
+function httpPort() {
+    const configured = process.env.IMAGE_CONTROL_PORT?.trim();
+    if (configured) {
+        const port = Number(configured);
+        if (!Number.isInteger(port) || port < 1_024 || port > 65_535) {
+            throw new Error("IMAGE_CONTROL_PORT 必须是 1024–65535 之间的整数");
+        }
+        return port;
+    }
+    // Codex can keep several tasks open at once. Give each MCP process its own
+    // loopback port so one task or cached build cannot block another one.
+    return 20_000 + ((process.pid * 7_919) % 20_000);
+}
+const HTTP_PORT = httpPort();
 const MEDIA_ORIGIN = `http://127.0.0.1:${HTTP_PORT}`;
 const store = new ProjectStore(ROOT_DIR, MEDIA_ORIGIN, PROJECTS_ROOT, STATE_ROOT);
 const annotationsRead = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
@@ -54972,7 +54985,7 @@ async function startHttpServer() {
         app.get(/.*/, (_req, res) => res.sendFile(external_node_path_.join(distDir, "index.html")));
     }
     return new Promise((resolve, reject) => {
-        const listener = app.listen(HTTP_PORT, "127.0.0.1", () => resolve(true));
+        const listener = app.listen(HTTP_PORT, "127.0.0.1", () => resolve(listener));
         listener.on("error", async (error) => {
             if (error.code === "EADDRINUSE") {
                 try {
@@ -54992,7 +55005,7 @@ async function startHttpServer() {
                         throw new Error("占用端口的服务不是当前图片生成中控");
                     }
                     process.stderr.write(`图片生成中控媒体端口 ${HTTP_PORT} 已由同一工作台占用，将安全复用。\n`);
-                    resolve(false);
+                    resolve(undefined);
                 }
                 catch (healthError) {
                     reject(new Error(`媒体端口 ${HTTP_PORT} 被其他程序占用：${healthError instanceof Error ? healthError.message : String(healthError)}`));
@@ -55003,16 +55016,58 @@ async function startHttpServer() {
         });
     });
 }
+async function closeHttpServer(listener) {
+    if (!listener?.listening)
+        return;
+    await new Promise((resolve, reject) => {
+        listener.close((error) => {
+            if (error && error.code !== "ERR_SERVER_NOT_RUNNING")
+                reject(error);
+            else
+                resolve();
+        });
+        listener.closeAllConnections();
+    });
+}
 async function main() {
     await store.init();
-    await startHttpServer();
+    const httpServer = await startHttpServer();
     // Every MCP/HTTP process may stay alive for a different amount of time.
     // VideoWorker performs a cross-process lease election, so one worker is
     // active and another process can take over after its owner exits.
-    new VideoWorker(store).start();
+    const worker = new VideoWorker(store);
+    worker.start();
+    let mcpServer;
+    let shutdownPromise;
+    const shutdown = (reason) => {
+        if (shutdownPromise)
+            return shutdownPromise;
+        shutdownPromise = (async () => {
+            process.stderr.write(`Image Control 正在关闭（${reason}）。\n`);
+            await mcpServer?.close().catch(() => undefined);
+            await worker.stop().catch(() => undefined);
+            await closeHttpServer(httpServer).catch(() => undefined);
+        })();
+        return shutdownPromise;
+    };
+    const shutdownFromSignal = (signal) => {
+        void shutdown(signal).finally(() => {
+            process.exitCode = 0;
+        });
+    };
+    process.once("SIGINT", () => shutdownFromSignal("SIGINT"));
+    process.once("SIGTERM", () => shutdownFromSignal("SIGTERM"));
     if (process.argv.includes("--stdio")) {
-        const server = createMcpServer();
-        await server.connect(new StdioServerTransport());
+        mcpServer = createMcpServer();
+        const shutdownFromStdio = () => {
+            void shutdown("stdio EOF").catch((error) => {
+                process.stderr.write(`Image Control 关闭失败：${error instanceof Error ? error.message : String(error)}\n`);
+                process.exitCode = 1;
+            });
+        };
+        process.stdin.once("end", shutdownFromStdio);
+        process.stdin.once("close", shutdownFromStdio);
+        await mcpServer.connect(new StdioServerTransport());
         process.stderr.write(`Image Control MCP ${SERVER_VERSION} ready.\n`);
         return;
     }

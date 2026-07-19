@@ -76,6 +76,7 @@ if (-not (Test-ImageControlServer)) {
   $env:IMAGE_CONTROL_ROOT = $root
   $env:IMAGE_CONTROL_STATE_ROOT = $stateRoot
   $env:IMAGE_CONTROL_PROJECTS_ROOT = $projectsRoot
+  $env:IMAGE_CONTROL_PORT = "4317"
   Start-Process -FilePath $node -ArgumentList @($entry, "--http") -WorkingDirectory $root -WindowStyle Hidden
   $ready = $false
   for ($attempt = 0; $attempt -lt 20; $attempt++) {

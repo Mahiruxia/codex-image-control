@@ -19,6 +19,18 @@ export function cacheBustedVersion(baseVersion, currentManifestVersion, token) {
 function main(argv) {
   const rootPackagePath = path.join(repoRoot, "package.json");
   const manifestPath = path.join(repoRoot, "plugins", "image-control", ".codex-plugin", "plugin.json");
+  const pluginRoot = path.dirname(path.dirname(manifestPath));
+  const requiredPayload = [
+    ".mcp.json",
+    "app/dist/index.html",
+    "runtime/index.js",
+  ];
+  for (const relativePath of requiredPayload) {
+    const absolutePath = path.join(pluginRoot, ...relativePath.split("/"));
+    let valid = false;
+    try { valid = fs.statSync(absolutePath).isFile() && fs.statSync(absolutePath).size > 0; } catch { /* Report one stable error below. */ }
+    if (!valid) throw new Error(`插件安装载荷缺少 ${relativePath}；请先运行 npm run build`);
+  }
   const rootPackage = JSON.parse(fs.readFileSync(rootPackagePath, "utf8"));
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   const token = argv[0] ?? Date.now().toString(36);

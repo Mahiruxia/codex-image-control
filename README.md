@@ -71,7 +71,7 @@ codex plugin marketplace add .
 codex plugin add image-control@codex-image-control
 ~~~
 
-重启桌面应用或新建任务后，说“打开图片生成中控”。若机器上仍有旧来源的同名插件，只保留一个版本启用，避免工具名和本地端口冲突。
+重启桌面应用并新建任务后，在输入框键入 `@`，选择“图片生成中控”，再发送“打开图片生成中控”。显式选择插件可以确保该任务加载它的 MCP 工具与内嵌工作台。若机器上仍有旧来源的同名插件，只保留一个版本启用，避免工具名冲突。
 
 Codex 对同一基础版本的本地插件可能复用缓存。需要重新安装尚未正式发布的本地构建时，只给插件清单增加一个缓存标记：
 
@@ -99,7 +99,7 @@ npm run cache-reset
 当前版本示例：
 
 ~~~powershell
-npm run set-version -- 0.11.1
+npm run set-version -- 0.11.2
 npm run cache-reset
 npm run package:windows
 ~~~

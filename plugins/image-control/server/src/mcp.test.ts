@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { createHmac, randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import net from "node:net";
@@ -20,6 +21,27 @@ async function availableLoopbackPort(): Promise<number> {
   if (!address || typeof address === "string") throw new Error("无法分配测试端口");
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   return address.port;
+}
+
+async function waitForHealth(origin: string, timeoutMs = 8_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${origin}/health`, { signal: AbortSignal.timeout(500) });
+      if (response.ok) return;
+    } catch { /* The child may still be starting. */ }
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`服务未能在 ${timeoutMs}ms 内启动：${origin}`);
+}
+
+async function assertPortCanListen(port: number): Promise<void> {
+  const server = net.createServer();
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, "127.0.0.1", resolve);
+  });
+  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 }
 
 test("stdio MCP exposes app resource and image-control tools", async (t) => {
@@ -284,4 +306,56 @@ test("stdio MCP exposes app resource and image-control tools", async (t) => {
   const deletedContent = deleted.structuredContent as { deletedProjectId?: string } | undefined;
   assert.equal(deletedContent?.deletedProjectId, structured?.project?.id);
   await client.callTool({ name: "delete_project", arguments: { projectId: mediaProjectId } });
+});
+
+test("stdio EOF stops the worker, exits the process, and releases its HTTP port", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "image-control-eof-root-"));
+  const stateRoot = await fs.mkdtemp(path.join(os.tmpdir(), "image-control-eof-state-"));
+  const projectsRoot = await fs.mkdtemp(path.join(os.tmpdir(), "image-control-eof-projects-"));
+  const httpPort = await availableLoopbackPort();
+  const serverEntry = process.env.IMAGE_CONTROL_MCP_ENTRY
+    ? path.resolve(process.env.IMAGE_CONTROL_MCP_ENTRY)
+    : fileURLToPath(new URL("./index.js", import.meta.url));
+  const inheritedEnvironment = Object.fromEntries(
+    Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+  );
+  const child = spawn(process.execPath, [serverEntry, "--stdio"], {
+    cwd: root,
+    env: {
+      ...inheritedEnvironment,
+      IMAGE_CONTROL_ROOT: root,
+      IMAGE_CONTROL_STATE_ROOT: stateRoot,
+      IMAGE_CONTROL_PROJECTS_ROOT: projectsRoot,
+      IMAGE_CONTROL_PORT: String(httpPort),
+    },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  let stderr = "";
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", (chunk: string) => { stderr += chunk; });
+  t.after(async () => {
+    if (child.exitCode === null && child.signalCode === null) child.kill();
+    await Promise.all([
+      fs.rm(root, { recursive: true, force: true }),
+      fs.rm(stateRoot, { recursive: true, force: true }),
+      fs.rm(projectsRoot, { recursive: true, force: true }),
+    ]);
+  });
+
+  await waitForHealth(`http://127.0.0.1:${httpPort}`);
+  child.stdin.end();
+  const exit = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`stdio EOF 后子进程未退出：${stderr}`)), 8_000);
+    child.once("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.once("exit", (code, signal) => {
+      clearTimeout(timeout);
+      resolve({ code, signal });
+    });
+  });
+  assert.equal(exit.signal, null, stderr);
+  assert.equal(exit.code, 0, stderr);
+  await assertPortCanListen(httpPort);
 });

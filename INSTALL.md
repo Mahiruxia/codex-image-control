@@ -12,12 +12,12 @@ codex plugin marketplace add $pluginRepo
 codex plugin add image-control@codex-image-control
 ```
 
-安装完成后重启 Codex 桌面应用或新建任务，然后说“打开图片生成中控”。工作台会以 Codex 内嵌插件界面打开。
+安装完成后完全重启 Codex 桌面应用并新建任务。在输入框键入 `@`，选择“图片生成中控”，再发送“打开图片生成中控”。工作台会以 Codex 内嵌插件界面打开。
 
 如需固定安装某个正式版本，可在添加市场时指定标签：
 
 ```powershell
-codex plugin marketplace add $pluginRepo --ref v0.11.1
+codex plugin marketplace add $pluginRepo --ref v0.11.2
 codex plugin add image-control@codex-image-control
 ```
 
