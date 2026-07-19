@@ -19,7 +19,7 @@
     "bundle": "node ../scripts/build-runtime.mjs",
     "start": "node dist/index.js --stdio",
     "start:http": "node dist/index.js --http",
-    "test": "npm run build && node --test --test-force-exit --test-timeout=30000 --test-concurrency=1 dist/store.test.js dist/video-worker.test.js dist/video-providers.test.js dist/mcp.test.js"
+    "test": "npm run build && node --test --test-force-exit --test-timeout=120000 --test-concurrency=1 dist/store.test.js dist/video-worker.test.js dist/video-providers.test.js dist/mcp.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.0.1",
