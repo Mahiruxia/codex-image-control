@@ -16,12 +16,6 @@ jobs:
   windows:
     runs-on: windows-latest
     timeout-minutes: 45
-    env:
-      # Windows runners may expose os.tmpdir() through an 8.3 short-path
-      # alias, which is intentionally rejected by the storage-boundary checks.
-      # Use the runner's canonical temp directory.
-      TEMP: ${{ runner.temp }}
-      TMP: ${{ runner.temp }}
     steps:
       - name: Check out source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -62,6 +56,10 @@ jobs:
       - name: Install locked dependencies
         run: npm run install:all
       - name: Verify, audit, and build reproducible release
+        env:
+          # Keep security-boundary tests on the runner's canonical temp path.
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         run: npm run package:windows
       - name: Confirm generated runtime is committed
         run: git diff --exit-code

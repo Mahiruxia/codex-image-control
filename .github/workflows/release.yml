@@ -18,11 +18,6 @@ jobs:
   windows:
     runs-on: windows-latest
     timeout-minutes: 60
-    env:
-      # Keep state-directory tests on the runner's canonical path instead of
-      # the Windows 8.3 alias sometimes returned by os.tmpdir().
-      TEMP: ${{ runner.temp }}
-      TMP: ${{ runner.temp }}
     steps:
       - name: Check out tagged source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -98,6 +93,10 @@ jobs:
         run: npm run install:all
 
       - name: Verify, audit, and package
+        env:
+          # Keep security-boundary tests on the runner's canonical temp path.
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         run: npm run package:windows
 
       - name: Confirm generated runtime is committed
