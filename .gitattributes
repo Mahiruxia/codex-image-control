@@ -1,0 +1,17 @@
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.mp4 binary
+*.node binary
+*.dll binary
+plugins/image-control/runtime/*.js text eol=lf linguist-generated=true
+plugins/image-control/runtime/**/*.js text eol=lf linguist-generated=true
+plugins/image-control/runtime/**/*.json text eol=lf linguist-generated=true
+plugins/image-control/runtime/**/*.md text eol=lf linguist-generated=true
+plugins/image-control/runtime/**/*.txt text eol=lf linguist-generated=true
+plugins/image-control/app/dist/** linguist-generated=true

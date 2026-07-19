@@ -1,0 +1,7 @@
+interface:
+  display_name: "图片生成中控"
+  short_description: "处理图片分镜、自动回写、视频提示词与模型接入"
+  brand_color: "#D7FF42"
+  default_prompt: "Use $image-control-workbench to edit images, process storyboard requests, prepare video prompts, or safely configure a local or cloud video model from its documentation."
+policy:
+  allow_implicit_invocation: true

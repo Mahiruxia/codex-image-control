@@ -1,0 +1,9 @@
+name: image-control-codeql
+
+paths-ignore:
+  - artifacts
+  - plugins/image-control/app/dist
+  - plugins/image-control/app/node_modules
+  - plugins/image-control/runtime
+  - plugins/image-control/server/dist
+  - plugins/image-control/server/node_modules

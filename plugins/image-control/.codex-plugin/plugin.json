@@ -1,0 +1,26 @@
+{
+  "name": "image-control",
+  "version": "0.11.1",
+  "description": "Codex 内部的单图编辑、分镜图片与视频生产工作台。",
+  "author": {
+    "name": "Image Control Contributors"
+  },
+  "license": "Apache-2.0",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "图片生成中控",
+    "shortDescription": "上传单图反复编辑，或在统一画布规划分镜并生成图片与视频。",
+    "longDescription": "本机单人使用的图片工作台，支持单图编辑、通用分镜、视频提示词和可插拔视频连接器。公开插件不内置维护者的视频地址、工作流或凭据；图片只由 Codex 内置生图完成，视频服务必须由每位使用者在自己的电脑上单独配置。",
+    "developerName": "Image Control Contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "打开图片生成中控，继续单图编辑、分镜图片或视频工作。"
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

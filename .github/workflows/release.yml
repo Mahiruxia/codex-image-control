@@ -1,0 +1,103 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify tag and formal version before building
+        id: version
+        shell: pwsh
+        run: |
+          $manifestPath = Join-Path $PWD "plugins/image-control/.codex-plugin/plugin.json"
+          $manifest = [System.IO.File]::ReadAllText($manifestPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+          $version = [string]$manifest.version
+          if ($version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$') {
+            throw "Formal releases reject +codex cache-buster suffixes and invalid versions."
+          }
+          if ($env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match plugin version v$version."
+          }
+          $pointsAt = @(git tag --points-at HEAD)
+          if ($pointsAt -notcontains $env:GITHUB_REF_NAME) {
+            throw "The release tag does not point at the checked-out commit."
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Refuse to overwrite an existing release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:GITHUB_REF_NAME *> $null
+          if ($LASTEXITCODE -eq 0) {
+            throw "Release $env:GITHUB_REF_NAME already exists; releases are immutable."
+          }
+          $global:LASTEXITCODE = 0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            plugins/image-control/app/package-lock.json
+            plugins/image-control/server/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm run install:all
+
+      - name: Verify, audit, and package
+        run: npm run package:windows
+
+      - name: Confirm generated runtime is committed
+        run: git diff --exit-code
+
+      - name: Attest release provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
+        with:
+          subject-path: artifacts/image-control-${{ steps.version.outputs.version }}-*
+
+      - name: Publish immutable GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $assets = @(
+            (Join-Path $PWD "artifacts/image-control-$env:RELEASE_VERSION-windows-x64.zip"),
+            (Join-Path $PWD "artifacts/image-control-$env:RELEASE_VERSION-windows-x64.zip.sha256"),
+            (Join-Path $PWD "artifacts/image-control-$env:RELEASE_VERSION-sbom.cdx.json"),
+            (Join-Path $PWD "artifacts/image-control-$env:RELEASE_VERSION-third-party-components.json")
+          )
+          foreach ($asset in $assets) {
+            if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) {
+              throw "Missing release asset: $asset"
+            }
+          }
+          $notesPath = Join-Path $PWD ".github/releases/$tag.md"
+          if (-not (Test-Path -LiteralPath $notesPath -PathType Leaf)) {
+            throw "Missing reviewed release notes: $notesPath"
+          }
+          gh release create $tag @assets --verify-tag --notes-file $notesPath --title $tag

@@ -1,0 +1,23 @@
+plugins/image-control/app/node_modules/
+plugins/image-control/server/node_modules/
+plugins/image-control/server/dist/
+artifacts/
+.runtime/
+.codex_tmp/
+plugins/image-control/data/projects/
+plugins/image-control/data/local/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# The distributable UI and Windows runtime are intentionally versioned.
+!plugins/image-control/app/dist/
+!plugins/image-control/runtime/

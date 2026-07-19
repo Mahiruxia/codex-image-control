@@ -1,0 +1,27 @@
+{
+  "name": "@image-control/plugin-workspace",
+  "version": "0.11.1",
+  "private": true,
+  "description": "Build workspace for the self-contained Image Control Codex plugin.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "scripts": {
+    "install:all": "npm ci --prefix app && npm ci --prefix server",
+    "build:app": "npm --prefix app run build",
+    "build:server": "npm --prefix server run build",
+    "bundle:server": "npm --prefix server run bundle",
+    "build": "npm run build:app && npm run build:server && npm run bundle:server",
+    "test:server": "npm --prefix server run test",
+    "test:runtime": "node scripts/test-runtime.mjs",
+    "test": "npm run test:server && npm run test:runtime",
+    "verify": "npm run build && npm run test"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "codex-image-control",
+  "interface": {
+    "displayName": "Codex Image Control"
+  },
+  "plugins": [
+    {
+      "name": "image-control",
+      "source": {
+        "source": "local",
+        "path": "./plugins/image-control"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

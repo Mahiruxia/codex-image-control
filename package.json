@@ -1,0 +1,33 @@
+{
+  "name": "codex-image-control",
+  "version": "0.11.1",
+  "private": true,
+  "description": "Maintainable source and release workspace for the Image Control Codex plugin.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "scripts": {
+    "install:all": "npm --prefix plugins/image-control run install:all",
+    "build": "npm --prefix plugins/image-control run build",
+    "test": "npm --prefix plugins/image-control run test",
+    "test:release-scripts": "node --test scripts/release-scripts.test.mjs",
+    "scan:release": "node scripts/scan-release.mjs --source .",
+    "supply-chain": "node scripts/generate-supply-chain.mjs --output-dir artifacts/release-metadata",
+    "supply-chain:check": "node scripts/generate-supply-chain.mjs --check",
+    "audit:dependencies": "npm --prefix plugins/image-control/app audit --audit-level=high && npm --prefix plugins/image-control/server audit --audit-level=high",
+    "cache-bust": "node scripts/set-cachebuster.mjs",
+    "cache-reset": "node scripts/set-cachebuster.mjs --clear",
+    "verify": "npm --prefix plugins/image-control run verify && npm run test:release-scripts && node scripts/validate-release.mjs && npm run scan:release && npm run supply-chain:check",
+    "format": "node scripts/format.mjs",
+    "migrate:legacy": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/migrate-legacy-state.ps1",
+    "package:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-release.ps1",
+    "set-version": "node scripts/set-version.mjs"
+  }
+}
