@@ -103,6 +103,7 @@ jobs:
         run: git diff --exit-code
 
       - name: Attest release provenance
+        if: github.event.repository.visibility == 'public'
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4
         with:
           subject-path: artifacts/image-control-${{ steps.version.outputs.version }}-*
