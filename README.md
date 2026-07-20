@@ -2,6 +2,8 @@
 
 图片生成中控是一个面向 Codex 的本地图片与分镜工作台，支持单图持续编辑、通用分镜策划、正式图片回写、视频提示词管理，以及由每位使用者自行配置的视频连接器。
 
+![Image Control 工作台总览：项目方向、连续分镜与阶段化生产界面](https://github.com/Mahiruxia/codex-image-control/releases/download/v0.11.2/image-control-workbench-overview.png)
+
 本仓库是唯一维护源。plugins/image-control/ 同时包含插件源码与构建后的 Windows 安装载荷；Codex 的插件缓存只是安装结果，不能作为后续修改或发布来源。
 
 ## 隐私边界
